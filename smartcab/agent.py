@@ -63,9 +63,8 @@ class LearningAgent(Agent):
         # constraints in order for you to learn how to adjust epsilon and alpha, and thus learn about the balance between exploration and exploitation.
         # With the hand-engineered features, this learning process gets entirely negated.
         
-        # Set 'state' as a tuple of relevant data for the agent        
-        state = None
-
+        # Set 'state' as a tuple of relevant data for the agent 
+        state = (waypoint, inputs['light'], inputs['oncoming'], inputs['right'], inputs['left'])
         return state
 
 
@@ -77,9 +76,14 @@ class LearningAgent(Agent):
         ## TO DO ##
         ###########
         # Calculate the maximum Q-value of all actions for a given state
-
-        maxQ = None
-
+        highest = max(self.Q[state].values())
+        maxQkeys = [k for k, v in self.Q[state].items() if v == highest]
+        if len(maxQkeys) > 1:
+            print "Randomly selected MAX Q due to tied values"
+            maxQ = random.choice(maxQkeys)
+        else:
+            print "Highest Max Q"
+            maxQ = maxQkeys[0]
         return maxQ 
 
 
@@ -93,6 +97,11 @@ class LearningAgent(Agent):
         # If it is not, create a new dictionary for that state
         #   Then, for each action available, set the initial Q-value to 0.0
 
+        if self.learning == True:
+            if state not in self.Q:
+                self.Q[state] = {None:0.0, 'forward':0.0, 'left':0.0, 'right':0.0}
+            else:
+                print "State already in Q-Table"
         return
 
 
@@ -112,6 +121,15 @@ class LearningAgent(Agent):
         # When learning, choose a random action with 'epsilon' probability
         # Otherwise, choose an action with the highest Q-value for the current state
         # Be sure that when choosing an action with highest Q-value that you randomly select between actions that "tie".
+
+        if not self.learning:
+            action = random.choice(self.valid_actions)
+        else:
+            probability = random.randrange(0,5)
+            if self.epsilon > probability:
+                action = random.choice(self.valid_actions)
+            else:
+                action = self.get_maxQ(self.state)
         return action
 
 
@@ -125,7 +143,8 @@ class LearningAgent(Agent):
         ###########
         # When learning, implement the value iteration update rule
         #   Use only the learning rate 'alpha' (do not use the discount factor 'gamma')
-
+        if self.learning:
+            self.Q[state][action] = self.Q[state][action] + self.alpha*(reward-self.Q[state][action])
         return
 
 
@@ -153,7 +172,7 @@ def run():
     #   verbose     - set to True to display additional output from the simulation
     #   num_dummies - discrete number of dummy agents in the environment, default is 100
     #   grid_size   - discrete number of intersections (columns, rows), default is (8, 6)
-    env = Environment(verbose=True, grid_size=(8,4), num_dummies=30)
+    env = Environment(grid_size=(8,4), num_dummies=30)
     
     ##############
     # Create the driving agent
@@ -176,7 +195,7 @@ def run():
     #   display      - set to False to disable the GUI if PyGame is enabled
     #   log_metrics  - set to True to log trial and simulation results to /logs
     #   optimized    - set to True to change the default log file name
-    sim = Simulator(env, log_metrics=True, update_delay=1.0)
+    sim = Simulator(env, log_metrics=True, update_delay=6.0)
     
     ##############
     # Run the simulator
